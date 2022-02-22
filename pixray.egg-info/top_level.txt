@@ -1,4 +1,0 @@
-Losses
-filters
-pixray
-slip
