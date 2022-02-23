@@ -1383,6 +1383,8 @@ def ascend_txt(args):
         for t in args.custom_loss:
             lossclass = t["loss"]
             lossweight = t["weight"]
+            print(out.get_device())
+            print(cur_cutouts.get_device())
             new_losses = lossclass.get_loss(cur_cutouts, out, args, globals = needed_globals, lossGlobals = lossGlobals)
             if type(new_losses) is not list and type(new_losses) is not tuple:
                 result.append(lossweight * new_losses)
