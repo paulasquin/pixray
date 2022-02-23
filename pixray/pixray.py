@@ -1286,8 +1286,8 @@ def ascend_txt(args):
             spotOffPms = spotOffPmsTable[clip_model]
             for prompt in spotOffPms:
                 result.append(prompt(iii_so))
-
-        iii = perceptor.encode_image(cur_cutouts[cutoutSize]).float()
+        
+        iii = perceptor.encode_image(cur_cutouts[cutoutSize]).to(device_clip).float()
         # iii = iii.to()
 
         pMs = pmsTable[clip_model]
