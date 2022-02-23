@@ -1288,7 +1288,7 @@ def ascend_txt(args):
                 result.append(prompt(iii_so))
 
         iii = perceptor.encode_image(cur_cutouts[cutoutSize]).float()
-        iii = iii.to()
+        # iii = iii.to()
 
         pMs = pmsTable[clip_model]
         for prompt in pMs:
