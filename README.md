@@ -1,5 +1,40 @@
 # pixray
 
+## Installation
+**Dependencies**
+```bash
+apt-get install -y ffmpeg zip
+```
+
+**Project installation**
+```bash
+git clone --recursive https://github.com/paulasquin/pixray.git
+cd pixray
+pip install -r requirements.txt
+pip install v-diffusion-pytorch/
+pip install . --no-deps
+```
+
+**Model downloading**
+Download model files 
+```
+models
+| RN50.pt
+| ViT-B-16.pt
+| ViT-B-32.pt
+| ...
+| checkpoints [dir]
+| | vgg16-397923af.pth
+
+taming
+| modules
+| | autoencoder
+| | | lpips
+| | | | vgg.pth
+```
+
+---
+
 ![Alt text](https://user-images.githubusercontent.com/945979/132954388-1986e4c6-6996-48fd-9e91-91ec97963781.png "deep ocean monsters #pixelart")
 
 Pixray is an image generation system. It combines previous ideas including:
