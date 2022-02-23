@@ -630,7 +630,11 @@ def do_init(args):
         # TODO: unload models?
         perceptors = {}
         for clip_model in args.clip_models:
-            perceptor = get_clip_perceptor(clip_model, device)
+            if args.multiple_gpu:
+                device_1 = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+                perceptor = get_clip_perceptor(clip_model, device_1)
+            else:
+                perceptor = get_clip_perceptor(clip_model, device)
             perceptors[clip_model] = perceptor
 
     # now separately setup cuts
@@ -1696,6 +1700,7 @@ def setup_parser(vq_parser):
     vq_parser.add_argument("-l",    "--labels", type=str, help="ImageNet labels", default=[], dest='labels')
     vq_parser.add_argument("-vp",   "--vector_prompts", type=str, help="Vector prompts", default="textoff", dest='vector_prompts')
     vq_parser.add_argument("-ip",   "--image_prompts", type=str, help="Image prompts", default=[], dest='image_prompts')
+    vq_parser.add_argument("-mg",   "--multiple_gpu", type=str2bool, help="Set to enable multiple gpu work", default=False, dest='multiple_gpu')
     vq_parser.add_argument("-ipw",  "--image_prompt_weight", type=float, help="Weight for image prompt", default=None, dest='image_prompt_weight')
     vq_parser.add_argument("-ips",  "--image_prompt_shuffle", type=str2bool, help="Shuffle image prompts", default=False, dest='image_prompt_shuffle')
     vq_parser.add_argument("-il",   "--image_labels", type=str, help="Image prompts", default=None, dest='image_labels')
