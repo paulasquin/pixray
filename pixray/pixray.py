@@ -575,7 +575,7 @@ def do_init(args):
     global pmsTable, pmsImageTable, pmsTargetTable, pImages, device, spotPmsTable, spotOffPmsTable
     global drawer, filters
     global lossGlobals, global_cached_png_info, global_seed_used
-    global devices
+    global devices, device_drawer, device_perceptor, device_image, device_clip
 
     reset_session_globals()
 
@@ -1069,6 +1069,10 @@ cutoutSizeTable = {}
 # persistent globals
 perceptors = {}
 device=None
+device_drawer = None
+device_perceptor = None
+device_image = None
+device_clip = None
 devices=[]
 
 #loss globals
@@ -1284,6 +1288,7 @@ def ascend_txt(args):
                 result.append(prompt(iii_so))
 
         iii = perceptor.encode_image(cur_cutouts[cutoutSize]).float()
+        iii = iii.to()
 
         pMs = pmsTable[clip_model]
         for prompt in pMs:
@@ -1409,10 +1414,10 @@ def re_average_z(args):
 
 def init_anim_z(args, init_rgba):
     global gside_X, gside_Y
-    global device, drawer
+    global device, drawer, device_drawer
 
     cur_z_image = init_rgba.copy()
-    drawer.reapply_from_tensor(TF.to_tensor(cur_z_image).to(device).unsqueeze(0) * 2 - 1)
+    drawer.reapply_from_tensor(TF.to_tensor(cur_z_image).to(device_drawer).unsqueeze(0) * 2 - 1)
 
 # torch.autograd.set_detect_anomaly(True)
 
@@ -1593,7 +1598,7 @@ def do_run(args, return_display=False):
                     prev_image.putalpha(args.animation_alpha)
                     base_image.paste(prev_image, (0, 0), prev_image)
                     # base_image.save(f"overlaid_{i:02d}.png")
-                    drawer.reapply_from_tensor(TF.to_tensor(base_image).to(device).unsqueeze(0) * 2 - 1)
+                    drawer.reapply_from_tensor(TF.to_tensor(base_image).to(device_drawer).unsqueeze(0) * 2 - 1)
                     anim_cur_zs[i] = drawer.get_z_copy()
     else:
         try:
