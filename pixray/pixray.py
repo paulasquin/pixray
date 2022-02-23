@@ -1395,7 +1395,7 @@ def ascend_txt(args):
         img = np.array(out.mul(255).clamp(0, 255)[0].cpu().detach().numpy().astype(np.uint8))[:,:,:]
         img = np.transpose(img, (1, 2, 0))
         imageio.imwrite(f'./steps/frame_{cur_iteration:04d}.png', np.array(img))
-    result = [r.to(device) for r in result]
+    result = [r.to(device_clip) for r in result]
     return result
 
 def re_average_z(args):
