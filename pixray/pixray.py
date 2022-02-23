@@ -575,6 +575,7 @@ def do_init(args):
     global pmsTable, pmsImageTable, pmsTargetTable, pImages, device, spotPmsTable, spotOffPmsTable
     global drawer, filters
     global lossGlobals, global_cached_png_info, global_seed_used
+    global devices
 
     reset_session_globals()
 
@@ -599,12 +600,22 @@ def do_init(args):
     random.seed(int_seed)
 
     # set device only once
+    device = None
+    devices = []
     if device is None:
-        # device = torch.device('cuda:0' if torch.cuda.is_available() and not args.cpu else 'cpu')
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    
+    if args.multiple_gpu and len(devices) == 0:
+        assert torch.cuda.is_available()
+        assert torch.cuda.device_count() >= 4
+        for device_id in range(torch.cuda.device_count()):
+            devices.append(torch.device(f'cuda:{device_id}'))
+        device = devices[0]
 
     drawer = class_table[args.drawer](args)
-    drawer.load_model(args, device)
+    device_drawer = device if not args.multiple_gpu else devices[0]
+    
+    drawer.load_model(args, device_drawer)
     num_resolutions = drawer.get_num_resolutions()
 
     # print("-----------> NUMR ", num_resolutions)
@@ -630,11 +641,8 @@ def do_init(args):
         # TODO: unload models?
         perceptors = {}
         for clip_model in args.clip_models:
-            if args.multiple_gpu:
-                device_1 = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
-                perceptor = get_clip_perceptor(clip_model, device_1)
-            else:
-                perceptor = get_clip_perceptor(clip_model, device)
+            device_perceptor = device if not args.multiple_gpu else devices[0]
+            perceptor = get_clip_perceptor(clip_model, device_perceptor)
             perceptors[clip_model] = perceptor
 
     # now separately setup cuts
@@ -683,6 +691,7 @@ def do_init(args):
         starting_image = img.convert('RGB')
         starting_image = starting_image.resize((sideX, sideY), Image.LANCZOS)
 
+        device_image = device if not args.multiple_gpu else devices[2]
         if args.init_image:
             # now we might overlay an init image
             filelist = None
@@ -698,7 +707,7 @@ def do_init(args):
                 init_image_rgb = init_image.convert('RGB')
                 init_image_rgb = init_image_rgb.resize((sideX, sideY), Image.LANCZOS)
                 init_image_tensor = TF.to_tensor(init_image_rgb)
-                init_image_tensor = init_image_tensor.to(device).unsqueeze(0)
+                init_image_tensor = init_image_tensor.to(device_image).unsqueeze(0)
 
                 # this version gets overlaid on the background (noise)
                 init_image_rgba = init_image.convert('RGBA')
@@ -718,7 +727,7 @@ def do_init(args):
         else:
             starting_image.save("starting_image.png")
             starting_tensor = TF.to_tensor(starting_image)
-            init_tensor = starting_tensor.to(device).unsqueeze(0)
+            init_tensor = starting_tensor.to(device_image).unsqueeze(0)
             drawer.init_from_tensor(init_tensor * 2 - 1)
 
     else:
@@ -854,6 +863,7 @@ def do_init(args):
     #                                   std=[0.26862954, 0.26130258, 0.27577711])
 
     # CLIP tokenize/encode
+    device_clip = device if not args.multiple_gpu else devices[3]
     for prompt in args.prompts:
         for clip_model in args.clip_models:
             pMs = pmsTable[clip_model]
@@ -863,7 +873,7 @@ def do_init(args):
                 # hack for now to test pseudo encode shim
                 txt = txt[1:]
                 print(f"--> {clip_model} encoding {txt} with stops")
-                actual_tokens = clip.tokenize(txt).to(device)
+                actual_tokens = clip.tokenize(txt).to(device_clip)
                 stops = actual_tokens.argmax(dim=-1) - 1
                 embed = perceptor.encode_text(actual_tokens, stops).float()
             else:
@@ -872,12 +882,12 @@ def do_init(args):
             if clip_model == drawer_clip_target:
                 allpromptembeds.append(embed)
                 allweights.append(weight)
-            pMs.append(Prompt(embed, weight, stop).to(device))
+            pMs.append(Prompt(embed, weight, stop).to(device_clip))
 
     if drawer_clip_target is not None:
         if args.drawer=="vdiff" and args.vdiff_model[:7] == "cc12m_1":
             target_embeds = torch.cat(allpromptembeds)
-            allweights = torch.tensor(allweights, dtype=torch.float, device=device)
+            allweights = torch.tensor(allweights, dtype=torch.float, device=device_clip)
             clip_embed = F.normalize(target_embeds.mul(allweights[:, None]).sum(0, keepdim=True), dim=-1)
             print(f"clip_embed for drawer {drawer} is {clip_embed.shape}")
             drawer.sample_state[3] = {"clip_embed":clip_embed}
@@ -909,8 +919,8 @@ def do_init(args):
                 continue
             pMs = pmsTable[clip_model]
             v = np.array(vect_table[clip_model])
-            embed = torch.FloatTensor(v).to(device).float()
-            pMs.append(Prompt(embed, weight, stop).to(device))
+            embed = torch.FloatTensor(v).to(device_clip).float()
+            pMs.append(Prompt(embed, weight, stop).to(device_clip))
 
     for prompt in args.spot_prompts:
         for clip_model in args.clip_models:
@@ -918,7 +928,7 @@ def do_init(args):
             perceptor = perceptors[clip_model]
             txt, weight, stop = parse_prompt(prompt)
             embed = perceptor.encode_text(txt).float()
-            pMs.append(Prompt(embed, weight, stop).to(device))
+            pMs.append(Prompt(embed, weight, stop).to(device_clip))
 
     for prompt in args.spot_prompts_off:
         for clip_model in args.clip_models:
@@ -926,7 +936,7 @@ def do_init(args):
             perceptor = perceptors[clip_model]
             txt, weight, stop = parse_prompt(prompt)
             embed = perceptor.encode_text(txt).float()
-            pMs.append(Prompt(embed, weight, stop).to(device))
+            pMs.append(Prompt(embed, weight, stop).to(device_clip))
 
     for label in args.labels:
         for clip_model in args.clip_models:
@@ -940,7 +950,7 @@ def do_init(args):
             class_embeddings /= class_embeddings.norm(dim=-1, keepdim=True)
             class_embedding = class_embeddings.mean(dim=0)
             class_embedding /= class_embedding.norm()
-            pMs.append(Prompt(class_embedding.unsqueeze(0), weight, stop).to(device))
+            pMs.append(Prompt(class_embedding.unsqueeze(0), weight, stop).to(device_clip))
 
     for clip_model in args.clip_models:
         pImages = pmsImageTable[clip_model]
@@ -948,12 +958,12 @@ def do_init(args):
             img = Image.open(path)
             pil_image = img.convert('RGB')
             img = resize_image(pil_image, (sideX, sideY))
-            pImages.append(TF.to_tensor(img).unsqueeze(0).to(device))
+            pImages.append(TF.to_tensor(img).unsqueeze(0).to(device_clip))
 
     for seed, weight in zip(args.noise_prompt_seeds, args.noise_prompt_weights):
         gen = torch.Generator().manual_seed(seed)
         embed = torch.empty([1, perceptor.output_dim]).normal_(generator=gen)
-        pMs.append(Prompt(embed, weight).to(device))
+        pMs.append(Prompt(embed, weight).to(device_clip))
 
     #custom loss 
     if args.custom_loss is not None:
@@ -996,7 +1006,10 @@ def do_init(args):
     opts = rebuild_optimisers(args)
 
     # Output for the user
-    print('Using device:', device)
+    if args.multiple_gpu:
+        print(f'Using devices: {devices}')
+    else:    
+        print('Using device:', device)
     print('Optimising using:', args.optimiser)
 
     if args.prompts:
@@ -1056,6 +1069,7 @@ cutoutSizeTable = {}
 # persistent globals
 perceptors = {}
 device=None
+devices=[]
 
 #loss globals
 lossGlobals = {}
