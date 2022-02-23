@@ -613,7 +613,7 @@ def do_init(args):
         device = devices[0]
 
     drawer = class_table[args.drawer](args)
-    device_drawer = device if not args.multiple_gpu else devices[0]
+    device_drawer = device if not args.multiple_gpu else devices[2]
     
     drawer.load_model(args, device_drawer)
     num_resolutions = drawer.get_num_resolutions()
