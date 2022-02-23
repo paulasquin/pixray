@@ -1373,7 +1373,7 @@ def ascend_txt(args):
     needed_globals = {
         # used to be for palette loss - now left as an example
         "cur_iteration":cur_iteration,
-        "embeds": iii,
+        "embeds": iii.to(device),
     }
 
     if args.transparency:
@@ -1384,7 +1384,7 @@ def ascend_txt(args):
             lossclass = t["loss"]
             lossweight = t["weight"]
             print(out.get_device())
-            new_losses = lossclass.get_loss(cur_cutouts, out.to(device_clip), args, globals = needed_globals, lossGlobals = lossGlobals)
+            new_losses = lossclass.get_loss(cur_cutouts, out.to(device), args, globals = needed_globals, lossGlobals = lossGlobals)
             if type(new_losses) is not list and type(new_losses) is not tuple:
                 result.append(lossweight * new_losses)
             else:
