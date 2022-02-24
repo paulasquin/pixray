@@ -614,7 +614,6 @@ def do_init(args):
 
     drawer = class_table[args.drawer](args)
     device_drawer = device if not args.multiple_gpu else devices[1]
-    
     drawer.load_model(args, device_drawer)
     num_resolutions = drawer.get_num_resolutions()
 
@@ -1287,7 +1286,7 @@ def ascend_txt(args):
             for prompt in spotOffPms:
                 result.append(prompt(iii_so))
         
-        iii = perceptor.encode_image(cur_cutouts[cutoutSize]).to(device_clip).float()
+        iii = perceptor.encode_image(cur_cutouts[cutoutSize].to(device_perceptor)).to(device_clip).float()
         # iii = iii.to()
 
         pMs = pmsTable[clip_model]
