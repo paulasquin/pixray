@@ -1,4 +1,4 @@
-from DrawingInterface import DrawingInterface
+from pixray.DrawingInterface import DrawingInterface
 
 import pydiffvg
 import torch
