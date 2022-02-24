@@ -77,14 +77,14 @@ class_table = {
 }
 
 try:
-    from super_resolution import SuperResolutionDrawer
+    from pixray.super_resolution import SuperResolutionDrawer
     class_table.update({"super_resolution": SuperResolutionDrawer})
 except ImportError as e:
     print("--> Super resolution drawer not supported", e)
     pass
 
 try:
-    from fftdrawer import FftDrawer
+    from pixray.fftdrawer import FftDrawer
     # update class_table if these import OK
     class_table.update({"fft": FftDrawer})
 except ImportError as e:
@@ -92,9 +92,9 @@ except ImportError as e:
     pass
 
 try:
-    from clipdrawer import ClipDrawer
-    from pixeldrawer import PixelDrawer
-    from linedrawer import LineDrawer
+    from pixray.clipdrawer import ClipDrawer
+    from pixray.pixeldrawer import PixelDrawer
+    from pixray.linedrawer import LineDrawer
     # update class_table if these import OK
     class_table.update({
         "line_sketch": LineDrawer,
