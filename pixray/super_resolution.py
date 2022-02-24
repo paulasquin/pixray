@@ -68,7 +68,7 @@ class SuperResolutionDrawer(DrawingInterface):
 
         model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
         self.model = model.to(device)
-        upsampler = RealESRGANer(
+        self.upsampler = RealESRGANer(
             scale=4,
             model_path=checkpoint_path,
             model=self.model,
@@ -77,7 +77,6 @@ class SuperResolutionDrawer(DrawingInterface):
             pre_pad=0,
             half=False,
         )
-        self.upsampler = upsampler.to(device)
 
     def get_opts(self, decay_divisor):
         return None
