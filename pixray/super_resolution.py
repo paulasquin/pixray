@@ -1,4 +1,4 @@
-from DrawingInterface import DrawingInterface
+from pixray.DrawingInterface import DrawingInterface
 import os.path
 import torch
 from torch.nn import functional as F
