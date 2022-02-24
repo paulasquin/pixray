@@ -5,7 +5,7 @@ from torch.nn import functional as F
 from torchvision.transforms import functional as TF
 from basicsr.archs.rrdbnet_arch import RRDBNet
 
-from real_esrganer import RealESRGANer
+from pixray.real_esrganer import RealESRGANer
 from pixray.util import wget_file
 
 

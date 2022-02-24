@@ -3,7 +3,7 @@
 # Kevin Frans, L.B. Soros, Olaf Witkowski
 # https://arxiv.org/abs/2106.14843
 
-from DrawingInterface import DrawingInterface
+from pixray.DrawingInterface import DrawingInterface
 
 import pydiffvg
 import torch
