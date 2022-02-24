@@ -111,6 +111,8 @@ except ImportError:
     # only needed for palette stuff
     pass
 
+print(f"Found drawers: {class_table.keys()}")
+
 from Losses.LossInterface import LossInterface
 from Losses.PaletteLoss import PaletteLoss
 from Losses.SaturationLoss import SaturationLoss

@@ -59,15 +59,16 @@ class SuperResolutionDrawer(DrawingInterface):
         self.super_resolution_model = settings.super_resolution_model
 
     def load_model(self, settings, device):
+        self.device = device
         global global_model_cache
 
         checkpoint_path = f'models/super_resolution_{self.super_resolution_model}.ckpt'
         if not os.path.exists(checkpoint_path):
             wget_file(superresolution_checkpoint_table[self.super_resolution_model], checkpoint_path)
 
-        self.model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
-
-        self.upsampler = RealESRGANer(
+        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+        self.model = model.to(device)
+        upsampler = RealESRGANer(
             scale=4,
             model_path=checkpoint_path,
             model=self.model,
@@ -76,6 +77,7 @@ class SuperResolutionDrawer(DrawingInterface):
             pre_pad=0,
             half=False,
         )
+        self.upsampler = upsampler.to(device)
 
     def get_opts(self, decay_divisor):
         return None
