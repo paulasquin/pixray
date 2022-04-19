@@ -63,16 +63,26 @@ def vector_quantize(x, codebook):
     x_q = F.one_hot(indices, codebook.shape[0]).to(d.dtype) @ codebook
     return replace_grad(x_q, x)
 
+def display_memory(device_id=1):
+    mem = float(torch.cuda.memory_allocated(device_id) / (1024 * 1024))
+    print("memory allocated:", mem, "MiB")
+
 class ClampWithGrad(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, input, min, max):
+        # print("Forward")
+        # display_memory()
         ctx.min = min
         ctx.max = max
         ctx.save_for_backward(input)
+        display_memory()
         return input.clamp(min, max)
 
     @staticmethod
     def backward(ctx, grad_in):
+        # print("backward")
+        # display_memory()
         input, = ctx.saved_tensors
         return grad_in * (grad_in * (input - input.clamp(ctx.min, ctx.max)) >= 0), None, None
 
@@ -83,7 +93,9 @@ global_model_cache = {}
 class VqganDrawer(DrawingInterface):
     @staticmethod
     def add_settings(parser):
-        parser.add_argument("--vqgan_model", type=str, help="VQGAN model", default='imagenet_f16_16384', dest='vqgan_model')
+        vqgan_model_default = 'imagenet_f16_16384'
+        # vqgan_model_default = "coco"
+        parser.add_argument("--vqgan_model", type=str, help="VQGAN model", default=vqgan_model_default, dest='vqgan_model')
         parser.add_argument("--vqgan_config", type=str, help="VQGAN config", default=None, dest='vqgan_config')
         parser.add_argument("--vqgan_checkpoint", type=str, help="VQGAN checkpoint", default=None, dest='vqgan_checkpoint')
         return parser
@@ -92,6 +104,7 @@ class VqganDrawer(DrawingInterface):
         super(DrawingInterface, self).__init__()
         torch.hub.set_dir("models")
         self.vqgan_model = settings.vqgan_model
+        # self.vqgan_model = "imagenet_f16_16384m"
 
     def load_model(self, settings, device):
         global global_model_cache
@@ -120,6 +133,12 @@ class VqganDrawer(DrawingInterface):
         else:
             # TODO: unload if cache not empty?
             config = OmegaConf.load(config_path)
+            # config["data"]["params"]["batch_size"] = 4
+            # config["data"]["params"]["num_workers"] = 4
+            # config["model"]["params"]["n_embed"] = 512
+            # config["model"]["params"]["ddconfig"]["attn_resolutions"] = [8]
+            print(config)
+            print(f"loading model VQGAN {self.vqgan_model} {config.model.target} to {device}")
             if config.model.target == 'taming.models.vqgan.VQModel':
                 model = vqgan.VQModel(**config.model.params)
                 model.eval().requires_grad_(False)
@@ -187,12 +206,18 @@ class VqganDrawer(DrawingInterface):
     def get_num_resolutions(self):
         return self.model.decoder.num_resolutions
 
+    def decode(self, z_q):
+        return self.model.decode(z_q).add(1).div(2)
+
     def synth(self, cur_iteration):
         if self.gumbel:
             z_q = vector_quantize(self.z.movedim(1, 3), self.model.quantize.embed.weight).movedim(3, 1)       # Vector quantize
         else:
             z_q = vector_quantize(self.z.movedim(1, 3), self.model.quantize.embedding.weight).movedim(3, 1)
-        return clamp_with_grad(self.model.decode(z_q).add(1).div(2), 0, 1)
+        display_memory()
+        decoded = self.decode(z_q)
+        display_memory()
+        return clamp_with_grad(decoded, 0, 1)
 
     @torch.no_grad()
     def to_image(self):
