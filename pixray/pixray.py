@@ -1672,7 +1672,8 @@ def do_video(args):
 
     total_frames = last_frame-init_frame
 
-    length = 14 # Desired time of the video in seconds
+    length = 11 # Desired time of the video animation in seconds
+    length_end = 4 # Desired time of the video stop at end
 
     frames = []
     tqdm.write('Generating video...')
@@ -1698,7 +1699,7 @@ def do_video(args):
                '-preset', 'veryslow',
                '-metadata', f'comment={args.prompts}',
                output_file], stdin=PIPE)
-    for im in tqdm(frames + [frames[-1]] * int(fps)):
+    for im in tqdm(frames + [frames[-1]] * int(fps) * length_end):
         im.save(p.stdin, 'PNG')
     p.stdin.close()
     p.wait()

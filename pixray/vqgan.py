@@ -72,17 +72,14 @@ class ClampWithGrad(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, min, max):
         # print("Forward")
-        # display_memory()
         ctx.min = min
         ctx.max = max
         ctx.save_for_backward(input)
-        display_memory()
         return input.clamp(min, max)
 
     @staticmethod
     def backward(ctx, grad_in):
         # print("backward")
-        # display_memory()
         input, = ctx.saved_tensors
         return grad_in * (grad_in * (input - input.clamp(ctx.min, ctx.max)) >= 0), None, None
 
@@ -214,9 +211,7 @@ class VqganDrawer(DrawingInterface):
             z_q = vector_quantize(self.z.movedim(1, 3), self.model.quantize.embed.weight).movedim(3, 1)       # Vector quantize
         else:
             z_q = vector_quantize(self.z.movedim(1, 3), self.model.quantize.embedding.weight).movedim(3, 1)
-        display_memory()
         decoded = self.decode(z_q)
-        display_memory()
         return clamp_with_grad(decoded, 0, 1)
 
     @torch.no_grad()
